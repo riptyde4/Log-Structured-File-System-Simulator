@@ -5,7 +5,7 @@ using namespace std;
 
 // Constructor
 LFS::LFS(int n, int s, int b, int p): 
-numFiles(n), numSegments(s), blocksPerSegment(b), rw_head(0), policy(p){
+numFiles(n), numSegments(s), blocksPerSegment(b), rw_head(1), policy(p){
 	for(int i = 0; i <= numSegments; i++){
 		Segment s(blocksPerSegment, numFiles);
 		data.push_back(s);
@@ -146,7 +146,7 @@ void LFS::endOfDiskHandler(){
 	// Threading approach - Start at the beginning of the log
 	// This approach will cause fragmentation of the log
 	if(policy = POLICY_THREADING){
-		rw_head = 0;
+		rw_head = 1;
 	}
 
 	// Compaction approach with threading
@@ -159,14 +159,16 @@ void LFS::endOfDiskHandler(){
 
 void LFS::displayFSContents(){
 	cout << "==== BEGIN DISPLAY OF FILE SYSTEM CONTENTS ====" << endl;
-	for(int segment = 0; segment < numSegments; segment++){
+	for(int segment = 1; segment < numSegments; segment++){
 		cout << "Segment " << segment << " : " 
 		<< "Free Blocks: " << data[segment].free_blocks 
 		<< "\tLive Blocks: " << data[segment].live_blocks 
 		<< endl;
 		for(auto it : data[segment].block2file){
-			cout << "\tFile ID " << it.first << " has " << it.second
-			<< " blocks in this segment." << endl;
+			if(it.first != 0){
+				cout << "\tFile ID " << it.first << " has " << it.second
+				<< " blocks in this segment." << endl;
+			}
 		}
 	}
 	cout << "==== END DISPLAY OF FILE SYSTEM CONTENTS ====" << endl;
@@ -175,7 +177,7 @@ void LFS::displayFSContents(){
 void LFS::displayMap(){
 
 	cout << "==== BEGIN DISPLAY OF FILE BLOCK TO SEGMENT MAP ====" << endl;
-	for(int id = 0; id < numFiles; id++){
+	for(int id = 1; id <= numFiles; id++){
 		for(auto it0 : file_block2segment[id]){
 			cout << "File ID " << id << " block " << it0.first 
 			<< " is located in segment " << it0.second << endl;

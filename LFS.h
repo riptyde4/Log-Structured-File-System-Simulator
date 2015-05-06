@@ -16,11 +16,11 @@ class LFS{
 	int rw_head;
 
 	// Limits
-    int numSegments;
-    int blocksPerSegment;
-    int numFiles;
+	int numSegments;
+	int blocksPerSegment;
+	int numFiles;
 
-    // Reset age to 0 on every overwrite
+	// Reset age to 0 on every overwrite
 	// Increment all other segment ages by 1
 	// Low age = Hot segment
 	// High age = Cold segment
@@ -32,18 +32,15 @@ class LFS{
 	    	// This map will store how many blocks a file has
 	    	// in this segment - used to prevent accidental deletion
 	    	std::unordered_map<int, int> block2file;
-	   		Segment(int numBlocks, int num_Files){
-	    		free_blocks = numBlocks;
-	    		live_blocks = 0;
-	    		for(int i = 0; i < num_Files; i++){
-	    			block2file[i] = 0;
-	    		}
+		Segment(int numBlocks, int num_Files){
+			free_blocks = numBlocks;
+			live_blocks = 0;
 	    	}
 	};
 
-    // The physical disk
-    std::vector<Segment> data;
-    int policy;
+	// The physical disk
+	std::vector<Segment> data;
+	int policy;
 
 	// This vector of maps will map each file id & it's block number
 	// to the segment that the block was stored in
