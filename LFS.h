@@ -28,6 +28,7 @@ class LFS{
 	// Limits
     int numSegments;
     int blocksPerSegment;
+    int numFiles;
 
     // The physical disk
     vector<Segment> data;
@@ -36,20 +37,15 @@ class LFS{
 	// imap[fileid] = vector<int> inode;
 	// inode vectors will store the segments holding 
 	// the blocks associated with each file
-	unordered_map<int, vector<int>*> imap;
+	unordered_map<int, vector<int>> imap;
 
     // Constructor
-    LFS(int s, int b): 
-    numSegments(s), blocksPerSegment(b), rw_head(0){
-    	for(int i = 0; i < numSegments; i++){
-    		Segment s(blocksPerSegment);
-    		data.push_back(s);
-    	}
-    }   
+    LFS(int n, int s, int b);
 
     // Functions
-    void addFile(int fileID, int blockInFile);
-    void updateFile(int fileID);
+    void addFile(int fileID, int blocksInFile);
+    void updateFile(int fileID, int numBlock);
+    void endOfDiskHandler();
     void clean(); // ???
     void displayDiskContents();
 };
