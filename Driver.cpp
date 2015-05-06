@@ -4,8 +4,8 @@ int main(int argc, char * argv[]){
 
 	int numFiles = 3;
 	int numSegs = 10;
-	int blocksPerSeg = 2;
-	LFS sim(numFiles, numSegs, blocksPerSeg);
+	int blocksPerSeg = 3;
+	LFS sim(numFiles, numSegs, blocksPerSeg, POLICY_THREADING);
 
 	// Test adding files
 	sim.addFile(0, 6);
@@ -14,9 +14,6 @@ int main(int argc, char * argv[]){
 
 	// Display disk contents
 	sim.displayDiskContents();
-
-	// Display inode data
-	sim.displayInodes();
 
 	return 0;
 }

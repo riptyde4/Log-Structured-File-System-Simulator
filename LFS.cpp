@@ -4,17 +4,17 @@
 using namespace std;
 
 // Constructor
-LFS::LFS(int n, int s, int b): 
+LFS::LFS(int n, int s, int b, int p): 
 numSegments(s), blocksPerSegment(b), rw_head(0), policy(p){
 	for(int i = 0; i < numSegments; i++){
-		Segment s(blocksPerSegment);
+		Segment s(blocksPerSegment, numFiles);
 		data.push_back(s);
 	}
 
-	// Initialize the fileID -> vector link in the imap
+	// Initialize the file_block2segment map
 	for(int fileID = 0; fileID < numFiles; fileID++){
-		vector<int> vec;
-		imap[fileID] = vec;
+		unordered_map<int, int> blankMap;
+		file_block2segment.push_back(blankMap);
 	}
 }   
 
@@ -25,28 +25,41 @@ void LFS::addFile(int fileID, int blocksInFile){
 
 	// Loop until all blocks of the file are stored
 	bool segmentAdded = false;
-	while(blocksFilled < blocksInFile){
+
+	// This will track the number of times the r/w head has started
+	// from the beginning of the disk. If the r/w head was half way through
+	// the disk and reached the end, it will start at the beginning. If the
+	// second time around, it still does not find a place to write the remaining
+	// blocks(s), there is no point in continuing, because the entire disk is filled.
+	// This count should never reach a value greater than 1.
+	int restartCount = 0;
+
+	while(blocksFilled < blocksInFile && restartCount < 2){
 		// Make sure we are accessing a valid segment
 		if(currSegment < numSegments){
 			// Check if the segment is full
 			if(data[currSegment].live_blocks < blocksPerSegment){
 				data[currSegment].live_blocks++;
 				data[currSegment].free_blocks--;
-				blocksFilled++;
+				data[currSegment].block2file[fileID]++;
 				if(!segmentAdded){
 
-					// Add this segment to the file's inode
-					imap[fileID].push_back(currSegment);
+					// Add this segment to the file2block mapping
+					file_block2segment[fileID][blocksFilled] = currSegment;
 
 					// Set the segmentAdded flag true so that future 
 					// iterations with the same value for currSegment
 					// will not add the same segment twice
 					segmentAdded = true;
 				}
+				blocksFilled++;
 			}
-			// If it's full, try the next segment
 			else{
+				// If it's full, try the next segment
 				currSegment++;
+
+				// Update r/w head position
+				rw_head = currSegment;
 
 				// Since currSegment has now been changed, set the segmentAdded 
 				// flag so that the next iteration will add the new segment
@@ -55,54 +68,20 @@ void LFS::addFile(int fileID, int blocksInFile){
 		}
 		else{
 			endOfDiskHandler();
-			break;
+			restartCount++;
 		}
 	}
 
-	// Update r/w head position
-	// Note sure what this should be tracking exactly
-	// it currently keeps track of the current segment
-	rw_head = currSegment;
+	if(restartCount == 2){
+		cout << "Write of file ID " << fileID << " failed: "
+		<< "disk is full. Blocks written: " << blocksFilled << endl;
+	}
 }
 
 void LFS::updateFile(int fileID, int numBlock){
-	// Check if the file id is valid
-	unordered_map<int, vector<int>>::const_iterator it = imap.find(fileID);
-	if(it == imap.end()){
-		cerr << "Update to file " << fileID << " block " << numBlock 
-		<< " failed: Invalid file ID." << endl;
-		return;
-	}
-
-	// Check if the file is on disk
-	if(it->second.size() < 1){
-		// File has no blocks <==> not on disk
-		cerr << "Update to file " << fileID << " block " << numBlock 
-		<< " failed: No blocks on disk." << endl;
-		return;
-	}
 
 	// Get segment number
-	int sNum = numBlock % blocksPerSegment;
-
-	// Check if the file's inode vector contains this segment
-	vector<int>* inode = &imap[fileID];
-	vector<int>::const_iterator vecit = std::find(inode->begin(), inode->end(), sNum);
-	if(vecit == inode->end()){
-		// File's inode does not contain this segment
-		cerr << "Update to file " << fileID << " block " << numBlock
-		<< " failed: File inode does not point to the segment containing this block."
-		<< endl;
-		return;
-	}
-
-	// WRONG!!
-	// The below line will remove a segment from the inode, even if the file has other blocks
-	// in that segment. Need to add tracking of how many blocks each file has in each segment
-	// Or even which blocks it has in each segment so that this does not happen.
-
-	// Remove the old segment from the file's inode
-	inode->erase(vecit);
+	int sNum = file_block2segment[fileID][numBlock];
 
 	// Get the segment from disk
 	Segment * s;
@@ -113,25 +92,31 @@ void LFS::updateFile(int fileID, int numBlock){
 	// Invalidate the original block
 	s->free_blocks++;
 	s->live_blocks--;
+	s->block2file[fileID]--;
 
 	// Add the new updated block
 	// Start the loop at the position of the r/w head
 	int currSegment = rw_head;
 	// Make sure we are accessing a valid segment
 	bool blockWritten = false;
-	while(!blockWritten){
+	int restartCount = 0;
+	while(!blockWritten && restartCount < 2){
 		if(currSegment < numSegments){
 			// Check if the segment is full
 			if(data[currSegment].live_blocks < blocksPerSegment){
 				// Update the segment characteristics
 				data[currSegment].live_blocks++;
 				data[currSegment].free_blocks--;
-				// Update the imap
-				inode->push_back(currSegment);
+				data[currSegment].block2file[fileID]++;
+
+				// Update the file block to segment mapping
+				file_block2segment[fileID][numBlock] = currSegment;
+
+				// Set the flag to terminate the loop
 				blockWritten = true;
 			}
-			// If it's full, try the next segment
 			else{
+				// If it's full, try the next segment
 				currSegment++;
 				// Update rw head
 				rw_head = currSegment;
@@ -139,8 +124,13 @@ void LFS::updateFile(int fileID, int numBlock){
 		}
 		else{
 			endOfDiskHandler();
-			break;
+			restartCount++;
 		}
+	}
+
+	if(restartCount == 2){
+		cerr << "Update to file ID " << fileID << " failed: "
+		<< " the disk is full." << endl;
 	}
 }
 
@@ -159,9 +149,7 @@ void LFS::endOfDiskHandler(){
 
 	// Compaction approach with threading
 	else if(policy = POLICY_CLEAN){
-		// Move free blocks from unfilled segments
-		// to a new segment, leaving clean segments
-
+		// Move free blocks from unfilled segments to a new segment, leaving clean segments
 		// Start at the beginning of the disk
 	}
 
@@ -173,16 +161,9 @@ void LFS::displayDiskContents(){
 		<< "Free Blocks: " << data[segment].free_blocks 
 		<< "\tLive Blocks: " << data[segment].live_blocks 
 		<< endl;
-	}
-}
-
-void LFS::displayInodes(){
-	cout << "Displaying data from inode map" << endl;
-	for(auto it : imap){
-		cout << "File ID " << it.first << " has blocks in the following segments: ";
-		for(auto it0 : it.second){
-			cout << it0 << " ";
+		for(auto it : data[segment].block2file){
+			cout << "\tFile ID " << it.first << " has " << it.second
+			<< " blocks in this segment." << endl;
 		}
-		cout << endl;
 	}
 }

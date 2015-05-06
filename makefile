@@ -1,4 +1,4 @@
-FLAGS = -g -std=c++0x
+FLAGS = -g -std=c++11
 C = g++
 OUT = program3
 

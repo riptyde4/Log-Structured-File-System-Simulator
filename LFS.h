@@ -5,22 +5,9 @@
 #define POLICY_THREADING 1
 #define POLICY_CLEAN 2
 
-class LFS{
+#define BLOCK_NOT_ON_DISK 10
 
-	// Reset age to 0 on every overwrite
-	// Increment all other segment ages by 1
-	// Low age = Hot segment
-	// High age = Cold segment
-	class Segment{
-		public:
-	   		int age;
-	    	int live_blocks;
-	    	int free_blocks;
-	   		Segment(int numBlocks){
-	    		free_blocks = numBlocks;
-	    		live_blocks = 0;
-	    	}
-	};
+class LFS{
 
 	// Tracking
 	int totalReads;
@@ -33,15 +20,36 @@ class LFS{
     int blocksPerSegment;
     int numFiles;
 
+    // Reset age to 0 on every overwrite
+	// Increment all other segment ages by 1
+	// Low age = Hot segment
+	// High age = Cold segment
+	class Segment{
+		public:
+	   		int age;
+	    	int live_blocks;
+	    	int free_blocks;
+	    	// This map will store how many blocks a file has
+	    	// in this segment - used to prevent accidental deletion
+	    	std::unordered_map<int, int> block2file;
+	   		Segment(int numBlocks, int num_Files){
+	    		free_blocks = numBlocks;
+	    		live_blocks = 0;
+	    		for(int i = 0; i < num_Files; i++){
+	    			block2file[i] = 0;
+	    		}
+	    	}
+	};
+
     // The physical disk
     std::vector<Segment> data;
     int policy;
 
-    // This will map files to their inodes
-	// imap[fileid] = vector<int> inode;
-	// inode vectors will store the segments holding 
-	// the blocks associated with each file
-	std::unordered_map<int, std::vector<int>> imap;
+	// This vector of maps will map each file id & it's block number
+	// to the segment that the block was stored in
+	// The index of the vector is the file ID
+	// The map key is the block number, the value is the segment number
+	std::vector<std::unordered_map<int, int>> file_block2segment;
 
 	public:
     	// Constructor
@@ -53,5 +61,4 @@ class LFS{
     	void endOfDiskHandler();
     	void clean(); // ???
     	void displayDiskContents();
-    	void displayInodes();
 };
