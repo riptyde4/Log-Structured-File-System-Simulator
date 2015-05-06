@@ -2,6 +2,7 @@
 #include <fstream>
 #include <stdlib.h>
 #include <vector>
+#include <sstream>
 #include <sys/time.h>
 using namespace std;
 
@@ -29,6 +30,7 @@ void generateHighLocality(vector<struct file> files, int rw_mix, int num_referen
 	int repeat = num_references;
 	int last_file_accessed = -1;
 	outfile << files.size() << endl;
+	vector<string> reads;
 	while(repeat){
 		bool write = rand() % 100 >= rw_mix? 1 : 0;
 		int file_num = rand() % files.size();
@@ -38,6 +40,10 @@ void generateHighLocality(vector<struct file> files, int rw_mix, int num_referen
 		else{
 			if(rand() % 100 >= 90){ //10% chance to avoid locality of reference and start referencing new file
 				last_file_accessed = file_num;
+				for(int i = 0; i < reads.size(); i++){
+					outfile << reads[i] << endl;
+				}
+				reads.clear();
 			}
 		}
 		if(write){
@@ -46,7 +52,10 @@ void generateHighLocality(vector<struct file> files, int rw_mix, int num_referen
 		}
 		else{
 			int block_number = rand() % files[last_file_accessed].size + 1;
-			outfile << "READ " << files[last_file_accessed].id << " " << block_number << endl;
+			stringstream ss;
+			ss << "READ " << files[last_file_accessed].id << " " << block_number;
+			string line = ss.str();
+			reads.push_back(line);
 		}
 		repeat--;
 	}
