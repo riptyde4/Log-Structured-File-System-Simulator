@@ -2,6 +2,9 @@
 #include <vector>
 #include <unordered_map>
 
+#define POLICY_THREADING 1
+#define POLICY_CLEAN 2
+
 class LFS{
 
 	// Reset age to 0 on every overwrite
@@ -32,6 +35,7 @@ class LFS{
 
     // The physical disk
     std::vector<Segment> data;
+    int policy;
 
     // This will map files to their inodes
 	// imap[fileid] = vector<int> inode;
@@ -41,7 +45,7 @@ class LFS{
 
 	public:
     	// Constructor
-    	LFS(int n, int s, int b);
+    	LFS(int n, int s, int b, int p);
 
     	// Functions
    		void addFile(int fileID, int blocksInFile);

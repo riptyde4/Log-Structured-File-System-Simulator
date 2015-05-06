@@ -5,7 +5,7 @@ using namespace std;
 
 // Constructor
 LFS::LFS(int n, int s, int b): 
-numSegments(s), blocksPerSegment(b), rw_head(0){
+numSegments(s), blocksPerSegment(b), rw_head(0), policy(p){
 	for(int i = 0; i < numSegments; i++){
 		Segment s(blocksPerSegment);
 		data.push_back(s);
@@ -150,6 +150,21 @@ void LFS::endOfDiskHandler(){
 	// Clean?
 	// Go back and find a free block?
 	// Exit the loop and display an error?
+
+	// Threading approach - Start at the beginning of the log
+	// This approach will cause fragmentation of the log
+	if(policy = POLICY_THREADING){
+		rw_head = 0;
+	}
+
+	// Compaction approach with threading
+	else if(policy = POLICY_CLEAN){
+		// Move free blocks from unfilled segments
+		// to a new segment, leaving clean segments
+
+		// Start at the beginning of the disk
+	}
+
 }
 
 void LFS::displayDiskContents(){
