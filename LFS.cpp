@@ -98,6 +98,11 @@ void LFS::updateFile(int fileID, int numBlock){
 		return;
 	}
 
+	// WRONG!!
+	// The below line will remove a segment from the inode, even if the file has other blocks
+	// in that segment. Need to add tracking of how many blocks each file has in each segment
+	// Or even which blocks it has in each segment so that this does not happen.
+
 	// Remove the old segment from the file's inode
 	inode->erase(vecit);
 
