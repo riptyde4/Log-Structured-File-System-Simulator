@@ -125,11 +125,10 @@ void LFS::endOfDiskHandler(){
 }
 
 void LFS::displayDiskContents(){
-	int totalBlocks = numSegments * blocksPerSegment;
-	for(int block = 0; block < totalBlocks; block++){
-		int numSegment = block % blocksPerSegment;
-		cout << "Segment " << numSegment << " Block " << block
-		<< " : " << "Free Blocks: " << data[block].free_blocks 
-		<< "\tLive Blocks: " << data[block].live_blocks << endl;
+	for(int segment = 0; segment < numSegments; segment++){
+		cout << "Segment " << segment << " : " 
+		<< "Free Blocks: " << data[segment].free_blocks 
+		<< "\tLive Blocks: " << data[segment].live_blocks 
+		<< endl;
 	}
 }
