@@ -11,9 +11,9 @@ void LFS::addFile(int fileID, int blocksInFile){
 	imap[fileID] = forimap;
 
 	// Loop until all blocks of the file are stored
+	bool segmentAdded = false;
 	while(blocksFilled < blocksInFile){
 		// Make sure we are accessing a valid segment
-		bool segmentAdded = false;
 		if(currSegment < numSegments){
 			// Check if the segment is full
 			if(data[currSegment].live_blocks < blocksPerSegment){
