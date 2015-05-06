@@ -23,7 +23,7 @@ void LFS::addFile(int fileID, int blocksInFile){
 
 	// Validate file ID
 	if(fileID < 1 || fileID > numFiles){
-		cerr << "Failed to add file ID " << fileID << ": file ID must satisfy 0 < fileID <= numFiles." << endl;
+		cerr << "Failed to add file ID " << fileID << ": file ID must satisfy 1 <= fileID <= numFiles." << endl;
 		return;
 	}
 
@@ -78,7 +78,7 @@ void LFS::updateFile(int fileID, int numBlock){
 
 	// Validate file ID
 	if(fileID < 1 || fileID > numFiles){
-		cerr << "Failed to add file ID " << fileID << ": file ID must satisfy 0 < fileID <= numFiles." << endl;
+		cerr << "Failed to add file ID " << fileID << ": file ID must satisfy 1 <= fileID <= numFiles." << endl;
 		return;
 	}
 
