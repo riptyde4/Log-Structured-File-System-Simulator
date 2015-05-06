@@ -54,8 +54,6 @@ void LFS::addFile(int fileID, int blocksInFile){
 			}
 		}
 		else{
-			// Temporary loop termination
-			cout << "Reached end of disk" << endl;
 			endOfDiskHandler();
 			break;
 		}
@@ -140,8 +138,6 @@ void LFS::updateFile(int fileID, int numBlock){
 			}
 		}
 		else{
-			// Temporary loop termination
-			cout << "Reached end of disk" << endl;
 			endOfDiskHandler();
 			break;
 		}
@@ -149,6 +145,7 @@ void LFS::updateFile(int fileID, int numBlock){
 }
 
 void LFS::endOfDiskHandler(){
+	cout << "Reached end of disk." << endl;
 	// We have reached the end of the disk, need to figure out what to do here
 	// Clean?
 	// Go back and find a free block?
