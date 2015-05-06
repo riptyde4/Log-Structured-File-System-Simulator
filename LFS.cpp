@@ -19,7 +19,7 @@ numFiles(n), numSegments(s), blocksPerSegment(b), rw_head(1), policy(p){
 	}
 }   
 
-void LFS::addFile(int fileID, int blocksInFile){
+void LFS::writeManyBlocks(int fileID, int blocksInFile){
 
 	// Validate file ID
 	if(fileID < 1 || fileID > numFiles){
@@ -74,7 +74,7 @@ void LFS::addFile(int fileID, int blocksInFile){
 	}
 }
 
-void LFS::updateFile(int fileID, int numBlock){
+void LFS::writeSingleBlock(int fileID, int numBlock){
 
 	// Validate file ID
 	if(fileID < 1 || fileID > numFiles){
@@ -82,19 +82,24 @@ void LFS::updateFile(int fileID, int numBlock){
 		return;
 	}
 
-	// Get segment number
-	int sNum = file_block2segment[fileID][numBlock];
+	// Is the block already on disk?
+	unordered_map<int, int>::const_iterator it = file_block2segment[fileID].find(numBlock);
+	if(it != file_block2segment[fileID].end()){
 
-	// Get the segment from disk
-	Segment * s;
-	if(sNum < numSegments){
-		s = &data[sNum];
+		// Get the segment number
+		int sNum = file_block2segment[fileID][numBlock];
+
+		// Get the segment from disk
+		Segment * s;
+		if(sNum < numSegments){
+			s = &data[sNum];
+		}
+
+		// Invalidate the original block
+		s->free_blocks++;
+		s->live_blocks--;
+		s->block2file[fileID]--;
 	}
-
-	// Invalidate the original block
-	s->free_blocks++;
-	s->live_blocks--;
-	s->block2file[fileID]--;
 
 	// Add the new updated block
 	// Start the loop at the position of the r/w head
@@ -152,7 +157,9 @@ void LFS::endOfDiskHandler(){
 	// Compaction approach with threading
 	else if(policy = POLICY_CLEAN){
 		// Move free blocks from unfilled segments to a new segment, leaving clean segments
+		clean();
 		// Start at the beginning of the disk
+		rw_head = 1;
 	}
 
 }
@@ -184,5 +191,9 @@ void LFS::displayMap(){
 		}
 	}
 	cout << "==== END DISPLAY OF FILE BLOCK TO SEGMENT MAP ====" << endl;
+}
+
+void LFS::clean(){
+	// How do we clean?!?
 }
 

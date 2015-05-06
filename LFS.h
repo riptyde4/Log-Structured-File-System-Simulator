@@ -57,8 +57,8 @@ class LFS{
 	LFS(int n, int s, int b, int p);
 
     	// Functions
-	void addFile(int fileID, int blocksInFile);
-    	void updateFile(int fileID, int numBlock);
+	void writeManyBlocks(int fileID, int blocksToWrite);
+	void writeSingleBlock(int fileID, int numBlock);
     	void endOfDiskHandler();
     	void clean(); // ???
     	void displayFSContents();
