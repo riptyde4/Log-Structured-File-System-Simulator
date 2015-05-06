@@ -53,12 +53,17 @@ class LFS{
 
 	public:
     	// Constructor
-    	LFS(int n, int s, int b, int p);
+	// n = num files
+	// s = num segments
+	// b = blocks per segment
+	// p = policy
+	LFS(int n, int s, int b, int p);
 
     	// Functions
-   		void addFile(int fileID, int blocksInFile);
+	void addFile(int fileID, int blocksInFile);
     	void updateFile(int fileID, int numBlock);
     	void endOfDiskHandler();
     	void clean(); // ???
-    	void displayDiskContents();
+    	void displayFSContents();
+	void displayMap();
 };

@@ -5,21 +5,29 @@ using namespace std;
 
 // Constructor
 LFS::LFS(int n, int s, int b, int p): 
-numSegments(s), blocksPerSegment(b), rw_head(0), policy(p){
-	for(int i = 0; i < numSegments; i++){
+numFiles(n), numSegments(s), blocksPerSegment(b), rw_head(0), policy(p){
+	for(int i = 0; i <= numSegments; i++){
 		Segment s(blocksPerSegment, numFiles);
 		data.push_back(s);
 	}
 
 	// Initialize the file_block2segment map
-	for(int fileID = 0; fileID < numFiles; fileID++){
+	// Index 0 is a garbage map to allow for 1 indexing
+	for(int fileID = 0; fileID <= numFiles; fileID++){
 		unordered_map<int, int> blankMap;
 		file_block2segment.push_back(blankMap);
 	}
 }   
 
 void LFS::addFile(int fileID, int blocksInFile){
-	int blocksFilled = 0;
+
+	// Validate file ID
+	if(fileID < 1 || fileID > numFiles){
+		cerr << "Failed to add file ID " << fileID << ": file ID must satisfy 0 < fileID <= numFiles." << endl;
+		return;
+	}
+
+	int blocksFilled = 1;
 	// Start the loop at the position of the r/w head
 	int currSegment = rw_head;
 
@@ -34,7 +42,7 @@ void LFS::addFile(int fileID, int blocksInFile){
 	// This count should never reach a value greater than 1.
 	int restartCount = 0;
 
-	while(blocksFilled < blocksInFile && restartCount < 2){
+	while(blocksFilled <= blocksInFile && restartCount < 2){
 		// Make sure we are accessing a valid segment
 		if(currSegment < numSegments){
 			// Check if the segment is full
@@ -42,16 +50,8 @@ void LFS::addFile(int fileID, int blocksInFile){
 				data[currSegment].live_blocks++;
 				data[currSegment].free_blocks--;
 				data[currSegment].block2file[fileID]++;
-				if(!segmentAdded){
-
-					// Add this segment to the file2block mapping
-					file_block2segment[fileID][blocksFilled] = currSegment;
-
-					// Set the segmentAdded flag true so that future 
-					// iterations with the same value for currSegment
-					// will not add the same segment twice
-					segmentAdded = true;
-				}
+				// Add this segment to the file2block mapping
+				file_block2segment[fileID][blocksFilled] = currSegment;
 				blocksFilled++;
 			}
 			else{
@@ -60,10 +60,6 @@ void LFS::addFile(int fileID, int blocksInFile){
 
 				// Update r/w head position
 				rw_head = currSegment;
-
-				// Since currSegment has now been changed, set the segmentAdded 
-				// flag so that the next iteration will add the new segment
-				segmentAdded = false;
 			}
 		}
 		else{
@@ -79,6 +75,12 @@ void LFS::addFile(int fileID, int blocksInFile){
 }
 
 void LFS::updateFile(int fileID, int numBlock){
+
+	// Validate file ID
+	if(fileID < 1 || fileID > numFiles){
+		cerr << "Failed to add file ID " << fileID << ": file ID must satisfy 0 < fileID <= numFiles." << endl;
+		return;
+	}
 
 	// Get segment number
 	int sNum = file_block2segment[fileID][numBlock];
@@ -155,7 +157,8 @@ void LFS::endOfDiskHandler(){
 
 }
 
-void LFS::displayDiskContents(){
+void LFS::displayFSContents(){
+	cout << "==== BEGIN DISPLAY OF FILE SYSTEM CONTENTS ====" << endl;
 	for(int segment = 0; segment < numSegments; segment++){
 		cout << "Segment " << segment << " : " 
 		<< "Free Blocks: " << data[segment].free_blocks 
@@ -166,4 +169,18 @@ void LFS::displayDiskContents(){
 			<< " blocks in this segment." << endl;
 		}
 	}
+	cout << "==== END DISPLAY OF FILE SYSTEM CONTENTS ====" << endl;
 }
+
+void LFS::displayMap(){
+
+	cout << "==== BEGIN DISPLAY OF FILE BLOCK TO SEGMENT MAP ====" << endl;
+	for(int id = 0; id < numFiles; id++){
+		for(auto it0 : file_block2segment[id]){
+			cout << "File ID " << id << " block " << it0.first 
+			<< " is located in segment " << it0.second << endl;
+		}
+	}
+	cout << "==== END DISPLAY OF FILE BLOCK TO SEGMENT MAP ====" << endl;
+}
+
