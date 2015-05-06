@@ -99,7 +99,6 @@ void LFS::updateFile(int fileID, int numBlock){
 		if(data[currSegment].live_blocks < blocksPerSegment){
 			data[currSegment].live_blocks++;
 			data[currSegment].free_blocks--;
-			// Add this segment to the imap
 		}
 		// If it's full, try the next segment
 		else{
@@ -123,4 +122,14 @@ void LFS::endOfDiskHandler(){
 	// Clean?
 	// Go back and find a free block?
 	// Exit the loop and display an error?
+}
+
+void LFS::displayDiskContents(){
+	int totalBlocks = numSegments * blocksPerSegment;
+	for(int block = 0; block < totalBlocks; block++){
+		int numSegment = block % blocksPerSegment;
+		cout << "Segment " << numSegment << " Block " << block
+		<< " : " << "Free Blocks: " << data[block].free_blocks 
+		<< "\tLive Blocks: " << data[block].live_blocks << endl;
+	}
 }
