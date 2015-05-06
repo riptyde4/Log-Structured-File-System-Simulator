@@ -10,13 +10,14 @@ class LFS{
 	// Low age = Hot segment
 	// High age = Cold segment
 	class Segment{
-	    int age;
-	    int live_blocks;
-	    int free_blocks;
-	    Segment(int numBlocks){
-	    	free_blocks = numBlocks;
-	    	live_blocks = 0;
-	    }
+		public:
+	   		int age;
+	    	int live_blocks;
+	    	int free_blocks;
+	   		Segment(int numBlocks){
+	    		free_blocks = numBlocks;
+	    		live_blocks = 0;
+	    	}
 	};
 
 	// Tracking
@@ -39,13 +40,14 @@ class LFS{
 	// the blocks associated with each file
 	unordered_map<int, vector<int>> imap;
 
-    // Constructor
-    LFS(int n, int s, int b);
+	public:
+    	// Constructor
+    	LFS(int n, int s, int b);
 
-    // Functions
-    void addFile(int fileID, int blocksInFile);
-    void updateFile(int fileID, int numBlock);
-    void endOfDiskHandler();
-    void clean(); // ???
-    void displayDiskContents();
+    	// Functions
+   		void addFile(int fileID, int blocksInFile);
+    	void updateFile(int fileID, int numBlock);
+    	void endOfDiskHandler();
+    	void clean(); // ???
+    	void displayDiskContents();
 };
