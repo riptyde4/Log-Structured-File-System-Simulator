@@ -1,7 +1,6 @@
 #include <iostream>
 #include <vector>
 #include <unordered_map>
-#include "Segment.h"
 
 class LFS{
 
@@ -32,13 +31,13 @@ class LFS{
     int numFiles;
 
     // The physical disk
-    vector<Segment> data;
+    std::vector<Segment> data;
 
     // This will map files to their inodes
 	// imap[fileid] = vector<int> inode;
 	// inode vectors will store the segments holding 
 	// the blocks associated with each file
-	unordered_map<int, vector<int>> imap;
+	std::unordered_map<int, std::vector<int>> imap;
 
 	public:
     	// Constructor
@@ -50,4 +49,5 @@ class LFS{
     	void endOfDiskHandler();
     	void clean(); // ???
     	void displayDiskContents();
+    	void displayInodes();
 };
