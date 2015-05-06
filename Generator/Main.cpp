@@ -28,6 +28,7 @@ void generateHighLocality(vector<struct file> files, int rw_mix, int num_referen
 	ofstream outfile("generated_output.txt");
 	int repeat = num_references;
 	int last_file_accessed = -1;
+	outfile << files.size() << endl;
 	while(repeat){
 		bool write = rand() % 100 >= rw_mix? 1 : 0;
 		int file_num = rand() % files.size();
@@ -53,6 +54,7 @@ void generateHighLocality(vector<struct file> files, int rw_mix, int num_referen
 }
 void generateLowLocality(vector<struct file> files, int rw_mix, int num_references){
 	ofstream outfile("generated_output.txt");
+	outfile << files.size() << endl;
 	int repeat = num_references;
 	while(repeat){
 		bool write = rand() % 100 >= rw_mix? 1 : 0;
