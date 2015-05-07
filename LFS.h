@@ -14,11 +14,13 @@ class LFS{
 	int totalWrites;
 	int totalSeeks;
 	int rw_head;
+	std::vector<std::pair<int, float>> utilizationList;
 
 	// Limits
 	int numSegments;
 	int blocksPerSegment;
 	int numFiles;
+	int utilThreshold;
 
 	// Reset age to 0 on every overwrite
 	// Increment all other segment ages by 1
@@ -54,7 +56,8 @@ class LFS{
 	// s = num segments
 	// b = blocks per segment
 	// p = policy
-	LFS(int n, int s, int b, int p);
+	// t = utilization threshold
+	LFS(int n, int s, int b, int p, int t);
 
     	// Functions
 	void writeManyBlocks(int fileID, int blocksToWrite);
@@ -63,4 +66,5 @@ class LFS{
     	void clean(); // ???
     	void displayFSContents();
 	void displayMap();
+	void updateUtilizationList();
 };

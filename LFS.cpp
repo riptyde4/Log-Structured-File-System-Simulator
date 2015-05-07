@@ -4,8 +4,8 @@
 using namespace std;
 
 // Constructor
-LFS::LFS(int n, int s, int b, int p): 
-numFiles(n), numSegments(s), blocksPerSegment(b), rw_head(1), policy(p){
+LFS::LFS(int n, int s, int b, int p, int u): 
+numFiles(n), numSegments(s), blocksPerSegment(b), rw_head(1), policy(p), utilThreshold(u){
 	for(int i = 0; i <= numSegments; i++){
 		Segment s(blocksPerSegment, numFiles);
 		data.push_back(s);
@@ -29,6 +29,7 @@ void LFS::writeManyBlocks(int fileID, int blocksInFile){
 
 	int blocksFilled = 1;
 	// Start the loop at the position of the r/w head
+	//int currSegment = rw_head;
 	int currSegment = rw_head;
 
 	// Loop until all blocks of the file are stored
@@ -103,6 +104,7 @@ void LFS::writeSingleBlock(int fileID, int numBlock){
 
 	// Add the new updated block
 	// Start the loop at the position of the r/w head
+//	int currSegment = rw_head;
 	int currSegment = rw_head;
 	// Make sure we are accessing a valid segment
 	bool blockWritten = false;
@@ -141,22 +143,36 @@ void LFS::writeSingleBlock(int fileID, int numBlock){
 	}
 }
 
+bool utilCompare(pair<int, float> p1, pair<int, float> p2){
+	return p1.second < p2.second;
+}
+
+// Seek when:
+// write from one segment to another
+// move in a segment
 void LFS::clean(){
+	cout << "Cleaning the file system ..." << endl;
+
+	// Update the utilization list
+	updateUtilizationList();
+
 	// Do while there could still be enough cleanable blocks to fill a segment
 	bool blocksToClean = true;
 	while(blocksToClean){
 		// Find blocks in unfilled segments and add them to the segmentsToClean vector
 		// If the accumulated total of blocks adds up to blocksPerSegment, move them
-		// Should we move them even if the total of blocks does not completely fill a new segment?
-		// My assumption is no, because this will simply just create another block that has to be 
-		// cleaned later on. Note that not cleaning all blocks from a segment will result in the same,
+		// Should we move them even if the accumulated total of blocks does not completely fill a new segment?
+		// My assumption is no, because this will simply just create another segment that has to be 
+		// cleaned later on. Note that not moving all of the blocks in a segment will result in the same,
 		// but this scenario is handled by checking if there are still blocks left in the segment
 		// and then later backtracking to that segment, moving it's remaining blocks.
 		vector<int> segmentsToClean;
 		unordered_map<int, int> blocksFromSegment;
 		int accumulatedBlocks = 0;
-		for(int currSegment = 1; currSegment <= numSegments; currSegment++){
-			if(data[currSegment].live_blocks > 0 && data[currSegment].live_blocks < blocksPerSegment){
+		for(int currSegment = rw_head; currSegment <= numSegments; currSegment++){
+//			if(data[currSegment].live_blocks > 0 && data[currSegment].live_blocks < blocksPerSegment){
+			if(utilizationList[currSegment].second > 0 && utilizationList[currSegment].second < utilThreshold){
+				cout << "Found that segment " << utilizationList[currSegment].first << " has low utilization: " << utilizationList[currSegment].second << endl;
 				// If not all of the blocks are occupied, then this segment needs to be cleaned
 				segmentsToClean.push_back(currSegment);
 				// Only take enough blocks to fill up a segment
@@ -173,9 +189,9 @@ void LFS::clean(){
 				// to be cleaned as well, so decrement currSegment so the next iteration will consider it
 				// Note that the only reason blocksLeft would be greater than 0 is that we have reached
 				// our desired amount of accumulated blocks, so this should not mess anything up.
-				if(blocksLeft > 0){
-					currSegment--;
-				}
+				//if(blocksLeft > 0){
+				//	currSegment--;
+				//}
 
 			}
 			if(accumulatedBlocks == blocksPerSegment){
@@ -236,6 +252,30 @@ void LFS::clean(){
 	}	
 }
 
+void LFS::updateUtilizationList(){
+	
+	// Clear the current values
+	utilizationList.clear();
+
+	// Go through the disk, getting the utilizatation of each, and placing it into a pair with it's index;
+	for(int i = 0; i <= numSegments; i ++){
+		float utilization = ((float)data[i].live_blocks / (float)blocksPerSegment) * 100.0f;
+		pair<int, float> p;
+		p.first = i;
+		p.second = utilization;
+		utilizationList.push_back(p);
+	}
+
+	// Sort by the utilization
+	sort(utilizationList.begin(), utilizationList.end(), utilCompare);
+
+	// print test
+	for(int i = 1; i < utilizationList.size(); i ++){
+		cout << "ID: " << utilizationList[i].first << "\t Utilization: " << utilizationList[i].second << endl;
+	}
+
+}
+
 void LFS::endOfDiskHandler(){
 	cout << "Reached end of disk." << endl;
 	// We have reached the end of the disk, need to figure out what to do here
@@ -261,7 +301,7 @@ void LFS::endOfDiskHandler(){
 
 void LFS::displayFSContents(){
 	cout << "==== BEGIN DISPLAY OF FILE SYSTEM CONTENTS ====" << endl;
-	for(int segment = 1; segment < numSegments; segment++){
+	for(int segment = 1; segment <= numSegments; segment++){
 		cout << "Segment " << segment << " : " 
 		<< "Free Blocks: " << data[segment].free_blocks 
 		<< "\tLive Blocks: " << data[segment].live_blocks 

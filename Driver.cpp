@@ -19,10 +19,10 @@ int main(int argc, char * argv[]){
 	s1 >> numFiles;
 	*/
 	
-	int numFiles = 3;
-	int numSegs = 10;
+	int numFiles = 4;
+	int numSegs = 20;
 	int blocksPerSeg = 3;
-	LFS sim(numFiles, numSegs, blocksPerSeg, POLICY_THREADING);
+	LFS sim(numFiles, numSegs, blocksPerSeg, POLICY_THREADING, 66);
 /*
 	while(getline(infile, line)){
 		stringstream ss(line);
@@ -42,16 +42,32 @@ int main(int argc, char * argv[]){
 	sim.writeManyBlocks(1, 3);
 	sim.writeManyBlocks(2, 3);
 	sim.writeManyBlocks(3, 3);
+	sim.writeManyBlocks(4, 3);
+
+	sim.displayFSContents();
+	sim.displayMap();
+
+	cout << endl << "Updating some blocks..." << endl;
+
 	sim.writeSingleBlock(1, 1);
 	sim.writeSingleBlock(2, 1);
 	sim.writeSingleBlock(3, 1);
+	sim.writeSingleBlock(3, 2);
+	sim.writeSingleBlock(2, 1);
+	sim.writeSingleBlock(4, 1);
+
 	sim.displayFSContents();
+	sim.displayMap();
+	cout << endl;
 	sim.clean();
+
 	
 	// Display file system contents
+
 	sim.displayFSContents();
 
 	// Display file block to segment map
+
 	sim.displayMap();
 
 	return 0;
