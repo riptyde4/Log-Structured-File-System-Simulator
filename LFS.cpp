@@ -149,7 +149,9 @@ void LFS::clean(){
 		// If the accumulated total of blocks adds up to blocksPerSegment, move them
 		// Should we move them even if the total of blocks does not completely fill a new segment?
 		// My assumption is no, because this will simply just create another block that has to be 
-		// cleaned later on. Note that not cleaning all blocks from a segment will result in the same.
+		// cleaned later on. Note that not cleaning all blocks from a segment will result in the same,
+		// but this scenario is handled by checking if there are still blocks left in the segment
+		// and then later backtracking to that segment, moving it's remaining blocks.
 		vector<int> segmentsToClean;
 		unordered_map<int, int> blocksFromSegment;
 		int accumulatedBlocks = 0;
