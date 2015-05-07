@@ -60,7 +60,9 @@ class LFS{
 	void writeManyBlocks(int fileID, int blocksToWrite);
 	void writeSingleBlock(int fileID, int numBlock);
     	void endOfDiskHandler();
+	void read(int fileID, int block_number);
     	void clean(); // ???
     	void displayFSContents();
 	void displayMap();
+	int getSeeks();
 };

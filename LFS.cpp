@@ -17,8 +17,11 @@ numFiles(n), numSegments(s), blocksPerSegment(b), rw_head(1), policy(p){
 		unordered_map<int, int> blankMap;
 		file_block2segment.push_back(blankMap);
 	}
+	totalSeeks = 0;
 }   
-
+int LFS::getSeeks(){
+	return totalSeeks;
+}
 void LFS::writeManyBlocks(int fileID, int blocksInFile){
 
 	// Validate file ID
@@ -127,6 +130,7 @@ void LFS::writeSingleBlock(int fileID, int numBlock){
 				currSegment++;
 				// Update rw head
 				rw_head = currSegment;
+				totalSeeks++;
 			}
 		}
 		else{
@@ -140,7 +144,35 @@ void LFS::writeSingleBlock(int fileID, int numBlock){
 		<< " the disk is full." << endl;
 	}
 }
+void LFS::read(int fileID, int numBlock){
 
+	// Validate file ID
+	if(fileID < 1 || fileID > numFiles){
+		cerr << "Failed to add file ID " << fileID << ": file ID must satisfy 1 <= fileID <= numFiles." << endl;
+		return;
+	}
+
+	// Is the block already on disk?
+	unordered_map<int, int>::const_iterator it = file_block2segment[fileID].find(numBlock);
+	if(it != file_block2segment[fileID].end()){
+
+		// Get the segment number
+		int sNum = file_block2segment[fileID][numBlock];
+
+		// Get the segment from disk
+		Segment * s;
+		if(sNum < numSegments){
+			s = &data[sNum];
+		}
+
+		// Read the block
+		rw_head = sNum;
+		totalSeeks++;
+	}
+	else{
+		writeSingleBlock(fileID, numBlock);
+	}
+}
 void LFS::clean(){
 	// Do while there could still be enough cleanable blocks to fill a segment
 	bool blocksToClean = true;
@@ -165,6 +197,7 @@ void LFS::clean(){
 				while((accumulatedBlocks + blocksTaken) < blocksPerSegment && blocksLeft > 0){
 					blocksLeft--;
 					blocksTaken++;
+					totalSeeks++;
 				}
 				accumulatedBlocks += blocksTaken;
 				blocksFromSegment[currSegment] = blocksTaken;
@@ -219,6 +252,7 @@ void LFS::clean(){
 									// Update the clean segments map to show that the files' blocks now reside there
 									data[cleanSegment].block2file[fileID]++;
 									blocksToRemove--;
+									totalSeeks++;
 								}
 							}
 						}
