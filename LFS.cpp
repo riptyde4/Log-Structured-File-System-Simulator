@@ -18,6 +18,8 @@ numFiles(n), numSegments(s), blocksPerSegment(b), rw_head(1), policy(p), utilThr
 		file_block2segment.push_back(blankMap);
 	}
 	totalSeeks = 0;
+	sizeAdded = 0;
+	totalSize = numSegments * blocksPerSegment;
 }   
 int LFS::getSeeks(){
 	return totalSeeks;
@@ -85,7 +87,10 @@ void LFS::writeSingleBlock(int fileID, int numBlock){
 		cerr << "Failed to add file ID " << fileID << ": file ID must satisfy 1 <= fileID <= numFiles." << endl;
 		return;
 	}
-
+	if(sizeAdded == totalSize){
+		cout << "DISK IS FULL" << endl;
+		exit(1);
+	}
 	// Is the block already on disk?
 	unordered_map<int, int>::const_iterator it = file_block2segment[fileID].find(numBlock);
 	if(it != file_block2segment[fileID].end()){
@@ -112,7 +117,8 @@ void LFS::writeSingleBlock(int fileID, int numBlock){
 	// Make sure we are accessing a valid segment
 	bool blockWritten = false;
 	int restartCount = 0;
-	while(!blockWritten && restartCount < 2){
+	int movedSegments = 0;
+	while(!blockWritten){
 		if(currSegment < numSegments){
 			// Check if the segment is full
 			if(data[currSegment].live_blocks < blocksPerSegment){
@@ -129,21 +135,42 @@ void LFS::writeSingleBlock(int fileID, int numBlock){
 			}
 			else{
 				// If it's full, try the next segment
-				currSegment++;
-				// Update rw head
-				rw_head = currSegment;
+				int moveThreshold = numSegments/2;
+				if(movedSegments < moveThreshold){
+					currSegment++;
+					movedSegments++;
+
+					// Update rw head
+					rw_head = currSegment;
+				}
+				// If we've moved too many times, clean and pick the next segment
+				else{
+					// If it's full, clean
+					clean();
+					int cleanSegment = 0;				
+					// Take the next clean segment from the list
+					for(int i = 0; i < utilizationList.size(); i++){
+						if(utilizationList[i].second == 0){
+							cleanSegment = utilizationList[i].first;
+						}
+					}
+					currSegment = cleanSegment;
+					rw_head = currSegment;
+				}
+
+				// If we moved to the next segment, we've seeked
+				// If we moved to the next cleanSegment after cleaning, we've also seeked
 				totalSeeks++;
+
 			}
 		}
-		else{
-			endOfDiskHandler();
-			restartCount++;
-		}
 	}
-
+	sizeAdded++;
+	cout << "Total size = " << totalSize << " vs " << sizeAdded << endl;
 	if(restartCount == 2){
 		cerr << "Update to file ID " << fileID << " failed: "
 		<< " the disk is full." << endl;
+		endOfDiskHandler();
 	}
 }
 void LFS::read(int fileID, int numBlock){
@@ -181,7 +208,7 @@ bool utilCompare(pair<int, float> p1, pair<int, float> p2){
 // Seek when:
 // write from one segment to another
 // move in a segment
-void LFS::clean(){
+/*void LFS::clean(){
 	cout << "Cleaning the file system ..." << endl;
 
 	// Update the utilization list
@@ -284,6 +311,82 @@ void LFS::clean(){
 		}
 	}	
 }
+*/
+void LFS::clean(){
+	// Case 1: Some underutilized segments and at least 1 free segment
+	//	-->
+	int empty_segment = 0;
+	for(int i = 0; i < utilizationList.size(); i++){
+		if(utilizationList[i].second == 0){
+			empty_segment = utilizationList[i].first;
+		}
+	}
+
+	for(int i = 0; i < utilizationList.size(); i++){
+		if(utilizationList[i].second > 0 && utilizationList[i].second < utilThreshold){
+			for(int j = i+1; j < utilizationList.size(); j++){
+				if(utilizationList[i].second + utilizationList[j].second <= 100){
+					//compact them together into the free segment and resort the util list and run this again
+					int blocksToRemove = data[utilizationList[i].first].live_blocks;
+					for(int fileID = 1; fileID <= data[utilizationList[i].first].block2file.size() && blocksToRemove > 0; fileID++){
+						int blocks = data[utilizationList[i].first].block2file[fileID];
+						if(blocks > 0){
+							for(int b = 1; b <= file_block2segment[fileID].size() && blocksToRemove > 0; b++){
+								if(file_block2segment[fileID][b] == utilizationList[i].first){
+									file_block2segment[fileID][b] = utilizationList[j].first;
+									// Update the block to file map for each segment that had blocks removed from it
+									// to reflect the fact that no files have any blocks in these segments any longer
+									data[utilizationList[i].first].block2file[fileID]--;
+									// Update the clean segments map to show that the files' blocks now reside there
+									data[utilizationList[j].first].block2file[fileID]++;
+									blocksToRemove--;
+									totalSeeks++;
+									data[utilizationList[i].first].live_blocks--;
+									data[utilizationList[j].first].live_blocks++;
+									data[utilizationList[i].first].free_blocks++;
+									data[utilizationList[j].first].free_blocks--;
+								}
+							}
+						}
+					}	
+				}
+				else{
+					//distribute i into j and on....
+					int blocksToRemove = data[utilizationList[i].first].live_blocks;
+					int leftOverBlocks = blocksToRemove - data[utilizationList[j].first].free_blocks;	
+					for(int fileID = 1; fileID <= data[utilizationList[i].first].block2file.size() && blocksToRemove > leftOverBlocks; fileID++){
+						int blocks = data[utilizationList[i].first].block2file[fileID];
+						if(blocks > 0){
+							for(int b = 1; b <= file_block2segment[fileID].size() && blocksToRemove > leftOverBlocks; b++){
+								if(file_block2segment[fileID][b] == utilizationList[i].first){
+									file_block2segment[fileID][b] = utilizationList[j].first;
+									// Update the block to file map for each segment that had blocks removed from it
+									// to reflect the fact that no files have any blocks in these segments any longer
+									data[utilizationList[i].first].block2file[fileID]--;
+									// Update the clean segments map to show that the files' blocks now reside there
+									data[utilizationList[j].first].block2file[fileID]++;
+									blocksToRemove--;
+									totalSeeks++;
+									data[utilizationList[i].first].live_blocks--;
+									data[utilizationList[j].first].live_blocks++;
+									data[utilizationList[i].first].free_blocks++;
+									data[utilizationList[j].first].free_blocks--;
+								}
+							}
+						}
+					}
+					//continue to next j
+				}
+				updateUtilizationList();
+			}
+		}	
+	}
+	
+
+		
+	// Case 2: Some underutilized segments and no free segments
+	// 	-->Compact the underutilized segments blocks into other underutilized blocks (whichever ones they fit into)
+}
 
 void LFS::updateUtilizationList(){
 	
@@ -315,7 +418,7 @@ void LFS::endOfDiskHandler(){
 	// Clean?
 	// Go back and find a free block?
 	// Exit the loop and display an error?
-
+	
 	// Threading approach - Start at the beginning of the log
 	// This approach will cause fragmentation of the log
 	if(policy = POLICY_THREADING){

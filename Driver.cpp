@@ -49,7 +49,7 @@ int main(int argc, char * argv[]){
 
 	// Display file block to segment map
 
-	sim.displayMap();
+//	sim.displayMap();
 	cout << "Number of seeks: " << sim.getSeeks() << endl;
 	return 0;
 }

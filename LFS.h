@@ -21,7 +21,8 @@ class LFS{
 	int blocksPerSegment;
 	int numFiles;
 	int utilThreshold;
-
+	int sizeAdded;
+	int totalSize;
 	// Reset age to 0 on every overwrite
 	// Increment all other segment ages by 1
 	// Low age = Hot segment
