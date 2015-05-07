@@ -32,9 +32,9 @@ class LFS{
 	    	// This map will store how many blocks a file has
 	    	// in this segment - used to prevent accidental deletion
 	    	std::unordered_map<int, int> block2file;
-		Segment(int numBlocks, int num_Files){
-			free_blocks = numBlocks;
-			live_blocks = 0;
+			Segment(int numBlocks, int num_Files){
+				free_blocks = numBlocks;
+				live_blocks = 0;
 	    	}
 	};
 

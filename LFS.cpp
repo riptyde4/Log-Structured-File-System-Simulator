@@ -141,6 +141,99 @@ void LFS::writeSingleBlock(int fileID, int numBlock){
 	}
 }
 
+void LFS::clean(){
+	// Do while there could still be enough cleanable blocks to fill a segment
+	bool blocksToClean = true;
+	while(blocksToClean){
+		// Find blocks in unfilled segments and add them to the segmentsToClean vector
+		// If the accumulated total of blocks adds up to blocksPerSegment, move them
+		// Should we move them even if the total of blocks does not completely fill a new segment?
+		// My assumption is no, because this will simply just create another block that has to be 
+		// cleaned later on. Note that not cleaning all blocks from a segment will result in the same.
+		vector<int> segmentsToClean;
+		unordered_map<int, int> blocksFromSegment;
+		int accumulatedBlocks = 0;
+		for(int currSegment = 1; currSegment <= numSegments; currSegment++){
+			if(data[currSegment].live_blocks > 0 && data[currSegment].live_blocks < blocksPerSegment){
+				// If not all of the blocks are occupied, then this segment needs to be cleaned
+				segmentsToClean.push_back(currSegment);
+				// Only take enough blocks to fill up a segment
+				int blocksLeft = data[currSegment].live_blocks;
+				int blocksTaken = 0;
+				while((accumulatedBlocks + blocksTaken) < blocksPerSegment && blocksLeft > 0){
+					blocksLeft--;
+					blocksTaken++;
+				}
+				accumulatedBlocks += blocksTaken;
+				blocksFromSegment[currSegment] = blocksTaken;
+
+				// If we have not taken all of the blocks from the current segment, it now needs
+				// to be cleaned as well, so decrement currSegment so the next iteration will consider it
+				// Note that the only reason blocksLeft would be greater than 0 is that we have reached
+				// our desired amount of accumulated blocks, so this should not mess anything up.
+				if(blocksLeft > 0){
+					currSegment--;
+				}
+
+			}
+			if(accumulatedBlocks == blocksPerSegment){
+				// Choose a clean segment to fill with the accumulated blocks
+				// May need to add handling for the case that there are no clean segments
+				// However, this should not happen (i think..)
+				int cleanSegment = 1;
+				for(int currSegment0 = 1; currSegment0 <= numSegments; currSegment0++){
+					if(data[currSegment0].free_blocks == blocksPerSegment){
+						cleanSegment = currSegment0;
+						break;
+					}
+				}
+
+				// Update the characteristics of the new segment that will hold these blocks (move them to cleanSegment)
+				data[cleanSegment].free_blocks = 0;
+				data[cleanSegment].live_blocks = accumulatedBlocks;
+
+				// Update the characteristics of the segments (remove the blocks from them)
+				// Don't update file2block yet, still need that data to speed up lookups - will do later
+				for(auto it : segmentsToClean){
+					int segmentToUpdate = it;
+					//data[segmentToUpdate].free_blocks += data[segmentToUpdate].live_blocks;
+					data[segmentToUpdate].free_blocks += blocksFromSegment[segmentToUpdate];
+					data[segmentToUpdate].live_blocks -= blocksFromSegment[segmentToUpdate];
+
+					// Update the map for each of the segments
+					// For each of the files that have at least 1 block in this segment:
+					// 		1. Look up which block(s) this file has in currSegment in the map
+					// 		2. Update the map to show that these blocks are no longer in currSegment but now in cleanSegment 
+					int blocksToRemove = blocksFromSegment[segmentToUpdate];
+					for(int fileID = 1; fileID <= data[segmentToUpdate].block2file.size() && blocksToRemove > 0; fileID++){
+						int blocks = data[segmentToUpdate].block2file[fileID];
+						if(blocks > 0){
+							for(int b = 1; b <= file_block2segment[fileID].size() && blocksToRemove > 0; b++){
+								if(file_block2segment[fileID][b] == segmentToUpdate){
+									file_block2segment[fileID][b] = cleanSegment;
+									// Update the block to file map for each segment that had blocks removed from it
+									// to reflect the fact that no files have any blocks in these segments any longer
+									data[segmentToUpdate].block2file[fileID]--;
+									// Update the clean segments map to show that the files' blocks now reside there
+									data[cleanSegment].block2file[fileID]++;
+									blocksToRemove--;
+								}
+							}
+						}
+					}
+				}
+				blocksFromSegment.clear();
+				segmentsToClean.clear();
+				accumulatedBlocks = 0;
+			}
+		}
+		// If the for loop did not accumulate enough blocks to fill a new segment, terminate the loop
+		if(accumulatedBlocks < blocksPerSegment){
+				blocksToClean = false;
+		}
+	}	
+}
+
 void LFS::endOfDiskHandler(){
 	cout << "Reached end of disk." << endl;
 	// We have reached the end of the disk, need to figure out what to do here
@@ -191,9 +284,5 @@ void LFS::displayMap(){
 		}
 	}
 	cout << "==== END DISPLAY OF FILE BLOCK TO SEGMENT MAP ====" << endl;
-}
-
-void LFS::clean(){
-	// How do we clean?!?
 }
 

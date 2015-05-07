@@ -5,9 +5,10 @@
 
 using namespace std;
 int main(int argc, char * argv[]){
+	/*
 	if(argc < 2){
 		cout << "USAGE " << argv[0] << " <input-filename>" << endl;
-		exit(1);
+		return 1;
 	}
 	string file(argv[1]);
 	ifstream infile(file);
@@ -16,11 +17,13 @@ int main(int argc, char * argv[]){
 	stringstream s1(line);
 	int numFiles;
 	s1 >> numFiles;
+	*/
 	
+	int numFiles = 3;
 	int numSegs = 10;
-	int blocksPerSeg = 10;
+	int blocksPerSeg = 3;
 	LFS sim(numFiles, numSegs, blocksPerSeg, POLICY_THREADING);
-
+/*
 	while(getline(infile, line)){
 		stringstream ss(line);
 		ss >> word;
@@ -33,7 +36,17 @@ int main(int argc, char * argv[]){
 		else if(word == "READ"){
 			;
 		}
-	}		
+	}		*/
+
+	// Testing clean
+	sim.writeManyBlocks(1, 3);
+	sim.writeManyBlocks(2, 3);
+	sim.writeManyBlocks(3, 3);
+	sim.writeSingleBlock(1, 1);
+	sim.writeSingleBlock(2, 1);
+	sim.writeSingleBlock(3, 1);
+	sim.displayFSContents();
+	sim.clean();
 	
 	// Display file system contents
 	sim.displayFSContents();
