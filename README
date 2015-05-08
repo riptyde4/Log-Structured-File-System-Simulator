@@ -1,0 +1,18 @@
+Ellington Kirby
+Jon Ball
+C++ 
+make
+
+Our submission comes packaged with 4 text files that highlight the benefits and drawbacks of a Log File System. The first two
+test the advantages of high locality of reference vs no locality of reference, they are titled highlocality5000.txt and lowlocality5000.txt.
+Our implementation shows that high locality of reference drastically reduces the number of seeks in reading and writing files. There are also
+text files which have much higher percentage writes vs reads and vice versa. They show that having a large number of reads causes many more 
+seeks than writes, as a log file system is designed to handle many short writes. 
+Feel free to run your own generator, running the ./generate executable in the Generator directory will prompt the user to enter input in
+creating a specificly designed text file to test the many aspects of our file system implementation. The system will ask for user input on
+the number of files, the size of files, how uniform the size should be, how many references should be implemented into the text file, 
+how high the locality of reference should be, and the percentage of reads to writes. 
+Running our main executable, ./program3 <input file name> will prompt the user to enter the number of segments and size. Playing around with 
+these sizes can affect performance by changing how often the system needs to be cleaned, and the space requirements. Thank you! 
+
+--Ellington and John  

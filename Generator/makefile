@@ -9,4 +9,4 @@ Main.o: Main.cpp
 	$c $f -c Main.cpp
 
 clean:
-	rm *.o *.txt $p
+	rm *.o $p
